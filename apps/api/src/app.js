@@ -39,8 +39,13 @@ app.use(morgan('combined', {
 	stream: { write: (msg) => logger.http(msg.trim()) },
 }));
 
-// Raw body preservado para validação de assinatura Stripe — type '*/*' garante captura independente do charset
-app.use('/stripe/webhook', express.raw({ type: '*/*' }));
+// Raw body para Stripe — lê o stream diretamente, sem depender de type-matching do express.raw
+app.use('/stripe/webhook', (req, _res, next) => {
+	const chunks = [];
+	req.on('data', chunk => chunks.push(chunk));
+	req.on('end', () => { req.body = Buffer.concat(chunks); next(); });
+	req.on('error', next);
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
