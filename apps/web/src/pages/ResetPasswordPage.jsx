@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { ArrowLeft, Lock, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Lock, Save, Loader2, AlertCircle } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
@@ -10,32 +10,56 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 
+const LINK_TIMEOUT_MS = 8000;
+const MIN_PASSWORD_LENGTH = 8;
+
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
+  const [linkExpired, setLinkExpired] = useState(false);
 
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      setLinkExpired(true);
+    }, LINK_TIMEOUT_MS);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
+        clearTimeout(timeout);
         setReady(true);
       }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      toast({
+        variant: 'destructive',
+        title: 'Senha fraca',
+        description: `A senha deve ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`,
+      });
+      return;
+    }
+
     if (newPassword !== confirmPassword) {
-      toast({ variant: 'destructive', title: 'Senhas não coincidem', description: 'A nova senha e a confirmação devem ser iguais.' });
+      toast({
+        variant: 'destructive',
+        title: 'Senhas não coincidem',
+        description: 'A nova senha e a confirmação devem ser iguais.',
+      });
       return;
     }
-    if (newPassword.length < 6) {
-      toast({ variant: 'destructive', title: 'Senha fraca', description: 'A senha deve ter pelo menos 6 caracteres.' });
-      return;
-    }
+
     setLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -67,11 +91,36 @@ export default function ResetPasswordPage() {
               <CardDescription>
                 {ready
                   ? 'Digite sua nova senha abaixo.'
-                  : 'Aguardando verificação do link...'}
+                  : linkExpired
+                    ? 'Este link é inválido ou expirou.'
+                    : 'Verificando link de recuperação...'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {!ready ? (
+              {linkExpired ? (
+                <div className="space-y-4 text-center">
+                  <div className="w-14 h-14 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center mx-auto">
+                    <AlertCircle className="w-7 h-7 text-destructive" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    O link de recuperação expirou ou já foi utilizado. Solicite um novo link.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/forgot-password')}
+                    className="w-full gradient-primary text-white h-11 font-semibold"
+                  >
+                    Solicitar novo link
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate('/login')}
+                    className="w-full text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Voltar para o login
+                  </Button>
+                </div>
+              ) : !ready ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
@@ -82,10 +131,11 @@ export default function ResetPasswordPage() {
                     <Input
                       id="newPassword"
                       type="password"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder={`Mínimo ${MIN_PASSWORD_LENGTH} caracteres`}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
+                      minLength={MIN_PASSWORD_LENGTH}
                       className="bg-white/3 border-white/10 focus:border-primary/50 focus:ring-primary/20 placeholder:text-muted-foreground/50"
                     />
                   </div>

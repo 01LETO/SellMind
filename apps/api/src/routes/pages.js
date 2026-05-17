@@ -23,6 +23,91 @@ const generateSchema = z.object({
 	toneOfVoice: z.string().min(1, 'Tom de voz obrigatório.').max(50, 'Tom de voz inválido.'),
 });
 
+/**
+ * @openapi
+ * /pages/generate:
+ *   post:
+ *     summary: Gera uma página de vendas HTML com IA
+ *     tags: [Pages]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [productName, targetAudience, mainPain, transformation, toneOfVoice]
+ *             properties:
+ *               productName:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Curso de Marketing Digital
+ *               targetAudience:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: Empreendedores iniciantes
+ *               mainPain:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: Não consegue atrair clientes online
+ *               transformation:
+ *                 type: string
+ *                 maxLength: 500
+ *                 example: Faturar R$10k em 30 dias
+ *               toneOfVoice:
+ *                 type: string
+ *                 maxLength: 50
+ *                 example: Inspirador e direto
+ *     responses:
+ *       200:
+ *         description: Página gerada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 html:
+ *                   type: string
+ *                   description: HTML completo da landing page
+ *                 title:
+ *                   type: string
+ *                 wordCount:
+ *                   type: integer
+ *                 generatedAt:
+ *                   type: string
+ *                   format: date-time
+ *                 pageId:
+ *                   type: string
+ *                   format: uuid
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Não autorizado
+ *       403:
+ *         description: Limite do plano atingido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                 limitReached:
+ *                   type: boolean
+ *                 planType:
+ *                   type: string
+ *                 limit:
+ *                   type: integer
+ *                 used:
+ *                   type: integer
+ *       429:
+ *         description: Rate limit excedido (5 req/min por usuário)
+ */
 router.post('/generate', pagesRateLimit, async (req, res) => {
 	const parsed = generateSchema.safeParse(req.body);
 	if (!parsed.success) {

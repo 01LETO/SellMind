@@ -3,7 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 import logger from './utils/logger.js';
+import { swaggerSpec } from './utils/swagger.js';
 import stripeRouter from './routes/stripe.js';
 import integratedAiRouter from './routes/integrated-ai.js';
 import pagesRouter from './routes/pages.js';
@@ -44,6 +46,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
+
+// Disponível em todos os ambientes; para ocultar em produção defina DOCS_DISABLED=true
+if (!process.env.DOCS_DISABLED) {
+	app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+	app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
+}
 
 app.use('/stripe', stripeRouter);
 app.use('/integrated-ai', integratedAiRouter);

@@ -11,7 +11,42 @@ const planPrices = {
     enterprise: 14700,
 };
 
-// POST /stripe/create-checkout
+/**
+ * @openapi
+ * /stripe/create-checkout:
+ *   post:
+ *     summary: Cria uma sessão de checkout Stripe
+ *     tags: [Stripe]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [planType, userId]
+ *             properties:
+ *               planType:
+ *                 type: string
+ *                 enum: [professional, enterprise]
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       200:
+ *         description: Sessão criada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 sessionId:
+ *                   type: string
+ *                 checkoutUrl:
+ *                   type: string
+ *                   format: uri
+ *       400:
+ *         $ref: '#/components/schemas/Error'
+ */
 router.post('/create-checkout', async (req, res) => {
     const { planType, userId } = req.body;
 
@@ -47,7 +82,37 @@ router.post('/create-checkout', async (req, res) => {
     res.json({ sessionId: session.id, checkoutUrl: session.url });
 });
 
-// POST /stripe/create-portal
+/**
+ * @openapi
+ * /stripe/create-portal:
+ *   post:
+ *     summary: Cria sessão do portal de gerenciamento de assinatura
+ *     tags: [Stripe]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [userId]
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 format: uuid
+ *     responses:
+ *       200:
+ *         description: URL do portal gerada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *                   format: uri
+ *       404:
+ *         description: Nenhuma assinatura encontrada
+ */
 router.post('/create-portal', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId obrigatório' });
@@ -70,7 +135,38 @@ router.post('/create-portal', async (req, res) => {
     res.json({ url: session.url });
 });
 
-// GET /stripe/session/:sessionId
+/**
+ * @openapi
+ * /stripe/session/{sessionId}:
+ *   get:
+ *     summary: Consulta o status de uma sessão de checkout
+ *     tags: [Stripe]
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: cs_test_abc123
+ *     responses:
+ *       200:
+ *         description: Status da sessão
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                   enum: [paid, unpaid, no_payment_required]
+ *                 amountTotal:
+ *                   type: integer
+ *                 customerEmail:
+ *                   type: string
+ *                   format: email
+ */
 router.get('/session/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });

@@ -11,6 +11,27 @@ const router = Router();
 
 router.use(supabaseAuth);
 
+/**
+ * @openapi
+ * /integrated-ai/history/clear:
+ *   post:
+ *     summary: Apaga todo o histórico de conversa do usuário
+ *     tags: [Integrated AI]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Histórico apagado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ok:
+ *                   type: boolean
+ *       401:
+ *         description: Não autorizado
+ */
 router.post('/history/clear', async (req, res) => {
     if (!req.supabaseUserId) return res.status(401).json({ error: 'Não autorizado.' });
     const { error } = await supabaseAdmin.from('integrated_ai_messages').delete().eq('user_id', req.supabaseUserId);
@@ -18,6 +39,45 @@ router.post('/history/clear', async (req, res) => {
     res.json({ ok: true });
 });
 
+/**
+ * @openapi
+ * /integrated-ai/stream:
+ *   post:
+ *     summary: Envia mensagem e recebe resposta da IA via Server-Sent Events
+ *     tags: [Integrated AI]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [message]
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 maxLength: 10000
+ *                 description: JSON serializado com array de blocos de conteúdo
+ *                 example: '[{"type":"text","text":"Olá!"}]'
+ *               images:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Até 4 imagens (JPEG, PNG, WebP, máx. 5MB cada)
+ *     responses:
+ *       200:
+ *         description: Stream SSE com a resposta da IA
+ *         content:
+ *           text/event-stream:
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Dados inválidos
+ *       429:
+ *         description: Rate limit excedido (10 req/min por usuário)
+ */
 router.post('/stream', integratedAiRateLimit, uploadFiles({
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
     fieldName: 'images',
