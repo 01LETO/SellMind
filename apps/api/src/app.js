@@ -39,8 +39,8 @@ app.use(morgan('combined', {
 	stream: { write: (msg) => logger.http(msg.trim()) },
 }));
 
-// Raw body deve ser parseado antes do express.json() para validação da assinatura Stripe
-app.use('/stripe/webhook', express.raw({ type: 'application/json' }));
+// Raw body preservado para validação de assinatura Stripe — type '*/*' garante captura independente do charset
+app.use('/stripe/webhook', express.raw({ type: '*/*' }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
