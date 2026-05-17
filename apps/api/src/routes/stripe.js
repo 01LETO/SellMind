@@ -189,19 +189,28 @@ router.post('/webhook', async (req, res) => {
     const secret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
     const bodyStr = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body ?? '');
 
-    // Compute HMAC manually to isolate body vs secret issues
     const tPart = sig.split(',').find(p => p.startsWith('t='))?.slice(2) ?? '';
     const stripeSig = sig.split(',').find(p => p.startsWith('v1='))?.slice(3) ?? '';
     const ourSig = createHmac('sha256', secret).update(`${tPart}.${bodyStr}`).digest('hex');
-    logger.info(`Webhook diag isBuffer=${Buffer.isBuffer(req.body)} size=${req.body?.length ?? 0} t=${tPart} match=${ourSig === stripeSig}`);
-    logger.info(`Body start: ${bodyStr.substring(0, 120)}`);
+    const diag = {
+        isBuffer: Buffer.isBuffer(req.body),
+        size: req.body?.length ?? 0,
+        secretLen: secret.length,
+        secretPrefix: secret.substring(0, 10),
+        t: tPart,
+        stripeSig: stripeSig.substring(0, 20),
+        ourSig: ourSig.substring(0, 20),
+        match: ourSig === stripeSig,
+        bodyStart: bodyStr.substring(0, 80),
+    };
+    logger.info('Webhook diag', diag);
 
     let event;
     try {
         event = stripe.webhooks.constructEvent(req.body, sig, secret);
     } catch (err) {
         logger.error('Webhook signature verification failed:', err.message);
-        throw new Error(`Webhook signature verification failed: ${err.message}`);
+        return res.status(400).json({ error: err.message, diag });
     }
 
     try {
