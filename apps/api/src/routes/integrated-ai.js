@@ -24,7 +24,10 @@ router.post('/stream', integratedAiRateLimit, uploadFiles({
 }), async (req, res) => {
     const { message } = req.body;
 
-    z.string({ required_error: 'message é obrigatório.' }).min(1).max(10000, 'Mensagem muito longa.').parse(message);
+    const msgResult = z.string({ required_error: 'message é obrigatório.' }).min(1).max(10000, 'Mensagem muito longa.').safeParse(message);
+    if (!msgResult.success) {
+        return res.status(400).json({ error: msgResult.error.issues[0]?.message ?? 'Dados inválidos.' });
+    }
 
     const parsedMessage = JSON.parse(message);
 
