@@ -1,8 +1,19 @@
-const logger = {
-	info: (...args) => console.log('[INFO]', new Date().toISOString(), ...args),
-	error: (...args) => console.error('[ERROR]', new Date().toISOString(), ...args),
-	warn: (...args) => console.warn('[WARN]', new Date().toISOString(), ...args),
-	debug: (...args) => console.debug('[DEBUG]', new Date().toISOString(), ...args),
-};
+import { createLogger, format, transports } from 'winston';
+
+const logger = createLogger({
+	level: process.env.LOG_LEVEL || 'info',
+	format: format.combine(
+		format.timestamp(),
+		format.errors({ stack: true }),
+		format.json(),
+	),
+	transports: [
+		new transports.Console({
+			format: process.env.NODE_ENV === 'production'
+				? format.json()
+				: format.combine(format.colorize(), format.simple()),
+		}),
+	],
+});
 
 export default logger;

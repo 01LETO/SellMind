@@ -14,6 +14,10 @@ vi.mock('../middleware/supabase-auth.js', () => ({
 	},
 }));
 
+vi.mock('../middleware/pages-rate-limit.js', () => ({
+	pagesRateLimit: (_req, _res, next) => next(),
+}));
+
 vi.mock('@anthropic-ai/sdk', () => {
 	const MockAnthropic = function () {
 		this.messages = {

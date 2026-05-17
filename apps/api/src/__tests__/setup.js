@@ -6,3 +6,4 @@ process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
 process.env.STRIPE_SECRET_KEY = 'sk_test_fake';
 process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test';
 process.env.FRONTEND_URL = 'http://localhost:5173';
+process.env.LOG_LEVEL = 'silent'; // silencia logs durante os testes

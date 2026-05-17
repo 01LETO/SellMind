@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
+import { pagesRateLimit } from '../middleware/pages-rate-limit.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import logger from '../utils/logger.js';
 
@@ -22,7 +23,7 @@ const generateSchema = z.object({
 	toneOfVoice: z.string().min(1, 'Tom de voz obrigatório.').max(50, 'Tom de voz inválido.'),
 });
 
-router.post('/generate', async (req, res) => {
+router.post('/generate', pagesRateLimit, async (req, res) => {
 	const parsed = generateSchema.safeParse(req.body);
 	if (!parsed.success) {
 		const message = parsed.error.issues[0]?.message ?? 'Dados inválidos.';
