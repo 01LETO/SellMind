@@ -173,7 +173,7 @@ export default function LandingPage() {
                     <Star key={i} className="w-4 h-4 fill-primary text-primary" />
                   ))}
                 </div>
-                <p className="text-sm text-foreground/80 leading-relaxed mb-4">"{t.text}"</p>
+                <p className="text-sm text-foreground/80 leading-relaxed mb-4">&quot;{t.text}&quot;</p>
                 <div>
                   <p className="text-sm font-semibold text-foreground">{t.name}</p>
                   <p className="text-xs text-muted-foreground">{t.role}</p>
