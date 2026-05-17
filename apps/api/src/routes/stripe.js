@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import express from 'express';
 import Stripe from 'stripe';
 import logger from '../utils/logger.js';
@@ -185,11 +186,18 @@ router.post('/webhook', async (req, res) => {
     const sig = req.headers['stripe-signature'];
     if (!sig) return res.status(400).json({ error: 'Missing stripe-signature header' });
 
-    logger.info(`Webhook body type=${typeof req.body} isBuffer=${Buffer.isBuffer(req.body)} size=${req.body?.length ?? 0}`);
+    const secret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
+    const bodyStr = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body ?? '');
+
+    // Compute HMAC manually to isolate body vs secret issues
+    const tPart = sig.split(',').find(p => p.startsWith('t='))?.slice(2) ?? '';
+    const stripeSig = sig.split(',').find(p => p.startsWith('v1='))?.slice(3) ?? '';
+    const ourSig = crypto.createHmac('sha256', secret).update(`${tPart}.${bodyStr}`).digest('hex');
+    logger.info(`Webhook diag isBuffer=${Buffer.isBuffer(req.body)} size=${req.body?.length ?? 0} t=${tPart} match=${ourSig === stripeSig}`);
+    logger.info(`Body start: ${bodyStr.substring(0, 120)}`);
 
     let event;
     try {
-        const secret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
         event = stripe.webhooks.constructEvent(req.body, sig, secret);
     } catch (err) {
         logger.error('Webhook signature verification failed:', err.message);
