@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { createHmac } from 'node:crypto';
 import express from 'express';
 import Stripe from 'stripe';
 import logger from '../utils/logger.js';
@@ -192,7 +192,7 @@ router.post('/webhook', async (req, res) => {
     // Compute HMAC manually to isolate body vs secret issues
     const tPart = sig.split(',').find(p => p.startsWith('t='))?.slice(2) ?? '';
     const stripeSig = sig.split(',').find(p => p.startsWith('v1='))?.slice(3) ?? '';
-    const ourSig = crypto.createHmac('sha256', secret).update(`${tPart}.${bodyStr}`).digest('hex');
+    const ourSig = createHmac('sha256', secret).update(`${tPart}.${bodyStr}`).digest('hex');
     logger.info(`Webhook diag isBuffer=${Buffer.isBuffer(req.body)} size=${req.body?.length ?? 0} t=${tPart} match=${ourSig === stripeSig}`);
     logger.info(`Body start: ${bodyStr.substring(0, 120)}`);
 
