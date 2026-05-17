@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import { z } from 'zod';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import logger from '../utils/logger.js';
@@ -13,12 +14,21 @@ const PLAN_LIMITS = { free: 3, professional: 30, enterprise: Infinity };
 
 const SYSTEM_PROMPT = `Você é um especialista em copywriting e marketing digital. Crie páginas de vendas HTML completas, profissionais e otimizadas para conversão. Inclua CSS embutido, design responsivo e copy persuasivo. Retorne APENAS o HTML completo começando com <!DOCTYPE html>, sem markdown, sem blocos de código.`;
 
-router.post('/generate', async (req, res) => {
-	const { productName, targetAudience, mainPain, transformation, toneOfVoice } = req.body;
+const generateSchema = z.object({
+	productName: z.string().min(1, 'Nome do produto obrigatório.').max(100, 'Nome do produto muito longo (máx. 100 caracteres).'),
+	targetAudience: z.string().min(1, 'Público-alvo obrigatório.').max(500, 'Público-alvo muito longo (máx. 500 caracteres).'),
+	mainPain: z.string().min(1, 'Principal dor obrigatória.').max(500, 'Principal dor muito longa (máx. 500 caracteres).'),
+	transformation: z.string().min(1, 'Transformação obrigatória.').max(500, 'Transformação muito longa (máx. 500 caracteres).'),
+	toneOfVoice: z.string().min(1, 'Tom de voz obrigatório.').max(50, 'Tom de voz inválido.'),
+});
 
-	if (!productName || !targetAudience || !mainPain || !transformation || !toneOfVoice) {
-		return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
+router.post('/generate', async (req, res) => {
+	const parsed = generateSchema.safeParse(req.body);
+	if (!parsed.success) {
+		const message = parsed.error.issues[0]?.message ?? 'Dados inválidos.';
+		return res.status(400).json({ error: message });
 	}
+	const { productName, targetAudience, mainPain, transformation, toneOfVoice } = parsed.data;
 
 	if (!req.supabaseUserId) {
 		return res.status(401).json({ error: 'Não autorizado.' });

@@ -14,7 +14,17 @@ import pagesRouter from './routes/pages.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(helmet({
+	contentSecurityPolicy: {
+		directives: {
+			defaultSrc: ["'none'"],
+		},
+	},
+	hsts: {
+		maxAge: 31536000,
+		includeSubDomains: true,
+	},
+}));
 app.use(cors({
 	origin: process.env.FRONTEND_URL || 'http://localhost:5173',
 	credentials: true,

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { ContentBlockType, stream, uploadImagesToSupabase } from '../api/integrated-ai.js';
 import { SystemPrompt } from '../constants/prompts.js';
 import { uploadFiles } from '../middleware/file-upload.js';
@@ -23,7 +24,7 @@ router.post('/stream', integratedAiRateLimit, uploadFiles({
 }), async (req, res) => {
     const { message } = req.body;
 
-    if (!message) throw new Error('message is required');
+    z.string({ required_error: 'message é obrigatório.' }).min(1).max(10000, 'Mensagem muito longa.').parse(message);
 
     const parsedMessage = JSON.parse(message);
 
