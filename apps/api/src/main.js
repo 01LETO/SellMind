@@ -2,6 +2,21 @@ import process from 'node:process';
 import dotenv from 'dotenv';
 dotenv.config();
 
+const REQUIRED_ENV_VARS = [
+	'SUPABASE_URL',
+	'SUPABASE_SERVICE_ROLE_KEY',
+	'SUPABASE_ANON_KEY',
+	'STRIPE_SECRET_KEY',
+	'STRIPE_WEBHOOK_SECRET',
+	'FRONTEND_URL',
+];
+
+const missing = REQUIRED_ENV_VARS.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+	console.error(`[startup] Variáveis de ambiente obrigatórias não definidas: ${missing.join(', ')}`);
+	process.exit(1);
+}
+
 import app from './app.js';
 import logger from './utils/logger.js';
 

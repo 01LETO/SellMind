@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { ContentBlockType, stream, uploadImagesToSupabase } from '../api/integrated-ai.js';
 import { SystemPrompt } from '../constants/prompts.js';
-import { uploadFiles } from '../middleware/file-upload.js';
+import { uploadFiles, validateMagicBytes } from '../middleware/file-upload.js';
 import { integratedAiRateLimit } from '../middleware/integrated-ai-rate-limit.js';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
@@ -87,6 +87,11 @@ router.post('/stream', integratedAiRateLimit, uploadFiles({
     const msgResult = z.string({ required_error: 'message é obrigatório.' }).min(1).max(10000, 'Mensagem muito longa.').safeParse(message);
     if (!msgResult.success) {
         return res.status(400).json({ error: msgResult.error.issues[0]?.message ?? 'Dados inválidos.' });
+    }
+
+    const invalidFiles = (req.files ?? []).filter((f) => !validateMagicBytes(f));
+    if (invalidFiles.length > 0) {
+        return res.status(400).json({ error: 'Um ou mais arquivos enviados são inválidos.' });
     }
 
     const parsedMessage = JSON.parse(message);

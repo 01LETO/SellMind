@@ -34,11 +34,12 @@ app.use(helmet({
 const ALLOWED_ORIGINS = [
 	process.env.FRONTEND_URL,
 	'http://localhost:5173',
+	...(process.env.CORS_EXTRA_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean),
 ].filter(Boolean);
 
 app.use(cors({
 	origin: (origin, cb) => {
-		if (!origin || ALLOWED_ORIGINS.includes(origin) || /^https:\/\/sell-mind-web[^.]*\.vercel\.app$/.test(origin)) {
+		if (!origin || ALLOWED_ORIGINS.includes(origin)) {
 			cb(null, true);
 		} else {
 			cb(new Error(`CORS: origin not allowed — ${origin}`));
@@ -63,8 +64,9 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/health', (_req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
 
-// Disponível em todos os ambientes; para ocultar em produção defina DOCS_DISABLED=true
-if (!process.env.DOCS_DISABLED) {
+// Desabilitado em produção por padrão; defina DOCS_ENABLED=true para expor em produção
+const docsEnabled = process.env.NODE_ENV !== 'production' || process.env.DOCS_ENABLED === 'true';
+if (docsEnabled) {
 	app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 	app.get('/docs.json', (_req, res) => res.json(swaggerSpec));
 }

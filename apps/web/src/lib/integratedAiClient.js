@@ -20,8 +20,12 @@ const integratedAiClient = {
         });
 
         if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Request failed (${response.status}): ${errorBody}`);
+            let message = 'Erro na requisição. Tente novamente.';
+            try {
+                const body = await response.json();
+                if (body?.error) message = body.error;
+            } catch { /* ignora falha no parse */ }
+            throw new Error(message);
         }
 
         return response.json();
@@ -47,8 +51,12 @@ const integratedAiClient = {
         });
 
         if (!response.ok) {
-            const errorBody = await response.text();
-            throw new Error(`Request failed (${response.status}): ${errorBody}`);
+            let message = 'Erro na requisição. Tente novamente.';
+            try {
+                const body = await response.json();
+                if (body?.error) message = body.error;
+            } catch { /* ignora falha no parse */ }
+            throw new Error(message);
         }
 
         if (!response.body) throw new Error('No response body');

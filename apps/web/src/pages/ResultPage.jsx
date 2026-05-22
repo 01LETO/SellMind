@@ -124,7 +124,7 @@ export default function ResultPage() {
                   srcDoc={pageData.html}
                   className="w-full h-[calc(100vh-220px)] border-0"
                   title="Preview da página"
-                  sandbox="allow-same-origin"
+                  sandbox="allow-scripts allow-forms allow-popups"
                 />
               </div>
             </TabsContent>

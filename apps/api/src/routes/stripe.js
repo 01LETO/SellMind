@@ -2,6 +2,8 @@ import express from 'express';
 import Stripe from 'stripe';
 import logger from '../utils/logger.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
+import { supabaseAuth } from '../middleware/supabase-auth.js';
+import { stripeCheckoutRateLimit, stripePortalRateLimit } from '../middleware/stripe-rate-limit.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -47,7 +49,7 @@ const planPrices = {
  *       400:
  *         $ref: '#/components/schemas/Error'
  */
-router.post('/create-checkout', async (req, res) => {
+router.post('/create-checkout', supabaseAuth, stripeCheckoutRateLimit, async (req, res) => {
     const { planType, userId } = req.body;
 
     if (!planType || !userId) {
@@ -113,7 +115,7 @@ router.post('/create-checkout', async (req, res) => {
  *       404:
  *         description: Nenhuma assinatura encontrada
  */
-router.post('/create-portal', async (req, res) => {
+router.post('/create-portal', supabaseAuth, stripePortalRateLimit, async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId obrigatório' });
 

@@ -30,12 +30,14 @@ export async function supabaseAuth(req, res, next) {
         const { data, error } = await supabase.auth.getUser(token);
 
         if (error || !data?.user) {
-            return next(new Error('Invalid or expired token'));
+            const err = Object.assign(new Error('Não autorizado.'), { status: 401 });
+            return next(err);
         }
 
         req.supabaseUserId = data.user.id;
         return next();
-    } catch (error) {
-        return next(new Error(error.message));
+    } catch {
+        const err = Object.assign(new Error('Não autorizado.'), { status: 401 });
+        return next(err);
     }
 }

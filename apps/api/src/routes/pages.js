@@ -1,10 +1,61 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
+import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
 import { pagesRateLimit } from '../middleware/pages-rate-limit.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import logger from '../utils/logger.js';
+
+const SANITIZE_OPTIONS = {
+	allowedTags: [
+		// Estrutura do documento
+		'html', 'head', 'body', 'meta', 'title', 'link', 'style',
+		// Semântica
+		'header', 'footer', 'main', 'section', 'article', 'nav', 'aside',
+		'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+		'ul', 'ol', 'li', 'dl', 'dt', 'dd',
+		'figure', 'figcaption', 'picture', 'source',
+		'blockquote', 'pre', 'code', 'em', 'strong', 'b', 'i', 'u', 's',
+		'hr', 'br', 'wbr',
+		// Mídia
+		'img', 'svg', 'path', 'circle', 'rect', 'line', 'polygon', 'polyline',
+		'defs', 'g', 'use', 'symbol', 'linearGradient', 'radialGradient', 'stop',
+		// Formulários / CTA
+		'form', 'label', 'input', 'button', 'select', 'option', 'textarea',
+		// Links e tabelas
+		'a', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption',
+	],
+	allowedAttributes: {
+		'*': ['class', 'id', 'style', 'role', 'aria-label', 'aria-hidden', 'aria-describedby', 'tabindex'],
+		'a': ['href', 'target', 'rel'],
+		'img': ['src', 'alt', 'width', 'height', 'loading', 'decoding'],
+		'meta': ['name', 'content', 'charset', 'http-equiv', 'viewport'],
+		'link': ['rel', 'href', 'type', 'media'],
+		'input': ['type', 'name', 'placeholder', 'value', 'required', 'disabled', 'checked', 'min', 'max'],
+		'form': ['action', 'method', 'novalidate'],
+		'button': ['type', 'disabled'],
+		'source': ['src', 'srcset', 'media', 'type'],
+		'svg': ['xmlns', 'viewBox', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'],
+		'path': ['d', 'fill', 'stroke', 'stroke-width', 'fill-rule', 'clip-rule'],
+		'circle': ['cx', 'cy', 'r', 'fill', 'stroke'],
+		'rect': ['x', 'y', 'width', 'height', 'rx', 'ry', 'fill', 'stroke'],
+		'stop': ['offset', 'stop-color', 'stop-opacity'],
+		'linearGradient': ['id', 'x1', 'y1', 'x2', 'y2', 'gradientUnits'],
+		'radialGradient': ['id', 'cx', 'cy', 'r', 'fx', 'fy', 'gradientUnits'],
+		'use': ['href', 'xlink:href', 'x', 'y', 'width', 'height'],
+		'th': ['colspan', 'rowspan', 'scope'],
+		'td': ['colspan', 'rowspan'],
+		'select': ['name', 'required', 'multiple', 'disabled'],
+		'textarea': ['name', 'placeholder', 'required', 'rows', 'cols', 'disabled'],
+	},
+	allowedSchemes: ['https', 'http', 'mailto', 'tel'],
+	allowedSchemesByTag: {
+		img: ['https', 'http', 'data'],
+	},
+	// <style> é necessário para landing pages; event handlers bloqueados pois não estão no allowedAttributes
+	allowVulnerableTags: true,
+};
 
 const router = Router();
 router.use(supabaseAuth);
@@ -165,6 +216,12 @@ Gere a landing page HTML completa, responsiva e otimizada para conversão.`;
 
 	let html = response.content[0].text.trim();
 	html = html.replace(/^```html\s*/i, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
+
+	// sanitize-html não preserva <!DOCTYPE> pois não é uma tag; restauramos após sanitização
+	const doctypeMatch = html.match(/^<!DOCTYPE[^>]*>/i);
+	const doctype = doctypeMatch ? doctypeMatch[0] : '';
+	html = sanitizeHtml(html, SANITIZE_OPTIONS);
+	if (doctype) html = `${doctype}\n${html}`;
 
 	const wordCount = html.replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length;
 	const title = `${productName} — Página de Vendas`;

@@ -75,7 +75,7 @@ describe('POST /stripe/webhook', () => {
 		expect(res.body.error).toMatch(/stripe-signature/i);
 	});
 
-	it('retorna 500 quando assinatura é inválida', async () => {
+	it('retorna 400 quando assinatura é inválida', async () => {
 		mockConstructEvent.mockImplementation(() => {
 			throw new Error('No signatures found matching the expected signature');
 		});
@@ -86,7 +86,7 @@ describe('POST /stripe/webhook', () => {
 			.set('stripe-signature', 'assinatura-invalida')
 			.send('{}');
 
-		expect(res.status).toBe(500);
+		expect(res.status).toBe(400);
 	});
 
 	it('processa checkout.session.completed e retorna 200', async () => {
