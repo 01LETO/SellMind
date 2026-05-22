@@ -216,7 +216,7 @@ export async function stream({ userId, systemPrompt, userMessage }) {
 	const collectedEvents = [];
 
 	const claudeStream = client.messages.stream({
-		model: 'claude-opus-4-7',
+		model: process.env.CLAUDE_MODEL || 'claude-opus-4-7',
 		max_tokens: 8192,
 		system: systemPrompt,
 		messages: claudeMessages,
@@ -247,7 +247,7 @@ export async function stream({ userId, systemPrompt, userMessage }) {
 					cacheCreationInputTokens: usage.cache_creation_input_tokens ?? 0,
 					cacheReadInputTokens: usage.cache_read_input_tokens ?? 0,
 					cachedPromptTokens: 0,
-					model: 'claude-opus-4-7',
+					model: process.env.CLAUDE_MODEL || 'claude-opus-4-7',
 					provider: 'anthropic',
 					platform: 'api',
 					agent: 'sellmind',

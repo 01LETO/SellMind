@@ -323,7 +323,12 @@ function useIntegratedAi() {
 						continue;
 					}
 
-					const parsed = JSON.parse(eventData);
+					let parsed;
+					try {
+						parsed = JSON.parse(eventData);
+					} catch {
+						continue;
+					}
 
 					if (parsed.type === SSEEventType.Error) {
 						throw new Error(parsed.data.content);
@@ -337,11 +342,15 @@ function useIntegratedAi() {
 				}
 			}
 		} catch (err) {
-			toast({
-				variant: 'destructive',
-				title: 'Error',
-				description: err.message,
-			});
+			if (err.name === 'AbortError') {
+				// Cancelamento intencional pelo usuário — não exibe erro
+			} else {
+				toast({
+					variant: 'destructive',
+					title: 'Erro na resposta',
+					description: err.message,
+				});
+			}
 
 			setMessages(prev => {
 				const last = prev[prev.length - 1];

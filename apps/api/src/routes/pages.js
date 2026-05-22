@@ -208,7 +208,7 @@ Gere a landing page HTML completa, responsiva e otimizada para conversão.`;
 	logger.info(`Generating sales page for "${productName}" (plan: ${planType}, used: ${pagesThisMonth}/${limit === Infinity ? '∞' : limit})`);
 
 	const response = await client.messages.create({
-		model: 'claude-opus-4-7',
+		model: process.env.CLAUDE_MODEL || 'claude-opus-4-7',
 		max_tokens: 8192,
 		system: SYSTEM_PROMPT,
 		messages: [{ role: 'user', content: userPrompt }],

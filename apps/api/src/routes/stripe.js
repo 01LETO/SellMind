@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import logger from '../utils/logger.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
-import { stripeCheckoutRateLimit, stripePortalRateLimit } from '../middleware/stripe-rate-limit.js';
+import { stripeCheckoutRateLimit, stripePortalRateLimit, stripeWebhookRateLimit } from '../middleware/stripe-rate-limit.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -183,7 +183,7 @@ router.get('/session/:sessionId', async (req, res) => {
 });
 
 // POST /stripe/webhook
-router.post('/webhook', async (req, res) => {
+router.post('/webhook', stripeWebhookRateLimit, async (req, res) => {
     const sig = req.headers['stripe-signature'];
     if (!sig) return res.status(400).json({ error: 'Missing stripe-signature header' });
 
