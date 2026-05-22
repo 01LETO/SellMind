@@ -23,17 +23,20 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
     if (error) throw new Error(error.message);
     return data.user;
   };
 
   const signup = async (email, password, fullName) => {
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: email.toLowerCase().trim(),
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName.trim() },
       },
     });
     if (error) throw new Error(error.message);

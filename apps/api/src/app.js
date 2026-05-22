@@ -62,6 +62,8 @@ app.use('/stripe/webhook', (req, _res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((_req, res, next) => { res.setHeader('X-API-Version', '1'); next(); });
+
 app.get('/health', (_req, res) => res.json({ ok: true, timestamp: new Date().toISOString() }));
 
 // Desabilitado em produção por padrão; defina DOCS_ENABLED=true para expor em produção
