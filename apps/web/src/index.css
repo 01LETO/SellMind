@@ -59,6 +59,17 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     background-color: #0B0F19;
   }
+
+  /* Fix: Chrome autofill sobrescreve fundo e texto — forçamos a cor correta */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-text-fill-color: hsl(220 14% 91%) !important;
+    -webkit-box-shadow: 0 0 0px 1000px hsl(215 28% 10%) inset !important;
+    caret-color: hsl(220 14% 91%);
+    transition: background-color 9999s ease-in-out 0s;
+  }
 }
 
 @layer utilities {
