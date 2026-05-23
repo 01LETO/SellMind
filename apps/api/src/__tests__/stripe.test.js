@@ -198,7 +198,7 @@ describe('GET /stripe/session/:sessionId', () => {
 	});
 
 	it('propaga erro do Stripe quando sessionId não existe', async () => {
-		mockRetrieve.mockRejectedValueOnce(Object.assign(new Error('No such session'), { status: 404 }));
+		mockRetrieve.mockRejectedValueOnce(Object.assign(new Error('No such session'), { statusCode: 404 }));
 		const res = await request(app).get('/stripe/session/cs_invalid');
 		expect(res.status).toBe(404);
 	});

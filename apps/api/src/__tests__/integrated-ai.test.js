@@ -18,6 +18,7 @@ vi.mock('../utils/supabaseClient.js', () => ({
 vi.mock('../middleware/supabase-auth.js', () => ({
 	supabaseAuth: (req, _res, next) => {
 		req.supabaseUserId = 'user-test-123';
+		req.supabaseUser = { id: 'user-test-123', email_confirmed_at: '2024-01-01T00:00:00Z' };
 		next();
 	},
 }));
@@ -39,9 +40,29 @@ vi.mock('@anthropic-ai/sdk', () => {
 const { supabaseAdmin } = await import('../utils/supabaseClient.js');
 const app = (await import('../app.js')).default;
 
+function setupChatLimitMocks({ planType = 'free', messagesUsed = 0 } = {}) {
+	supabaseAdmin.from.mockImplementation((table) => {
+		if (table === 'profiles') {
+			return {
+				select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: { plan_type: planType } }) }) }),
+			};
+		}
+		if (table === 'integrated_ai_messages') {
+			return {
+				select: (_cols, opts) => opts?.head
+					? { eq: () => ({ eq: () => ({ gte: () => Promise.resolve({ count: messagesUsed }) }) }) }
+					: { eq: () => Promise.resolve({ data: [] }) },
+				delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
+			};
+		}
+		return { delete: () => ({ eq: () => Promise.resolve({ error: null }) }) };
+	});
+}
+
 describe('POST /integrated-ai/stream', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setupChatLimitMocks();
 		// Mock que encerra a resposta imediatamente para o Supertest não ficar pendurado
 		mockStream.mockResolvedValue({
 			pipe: (res) => { res.end(); },
@@ -76,9 +97,7 @@ describe('POST /integrated-ai/stream', () => {
 
 describe('POST /integrated-ai/history/clear', () => {
 	it('retorna 200 ao limpar histórico', async () => {
-		supabaseAdmin.from.mockReturnValue({
-			delete: () => ({ eq: () => Promise.resolve({ error: null }) }),
-		});
+		setupChatLimitMocks();
 		const res = await request(app).post('/integrated-ai/history/clear');
 		expect(res.status).toBe(200);
 		expect(res.body).toHaveProperty('ok', true);

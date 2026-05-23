@@ -35,6 +35,7 @@ export async function supabaseAuth(req, res, next) {
         }
 
         req.supabaseUserId = data.user.id;
+        req.supabaseUser = data.user;
         return next();
     } catch {
         const err = Object.assign(new Error('Não autorizado.'), { status: 401 });

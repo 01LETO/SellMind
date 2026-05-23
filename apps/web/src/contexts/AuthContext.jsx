@@ -62,8 +62,15 @@ export function AuthProvider({ children }) {
     );
   }
 
+  const isEmailVerified = Boolean(currentUser?.email_confirmed_at);
+
+  const resendVerificationEmail = async () => {
+    if (!currentUser?.email) return;
+    await supabase.auth.resend({ type: 'signup', email: currentUser.email });
+  };
+
   return (
-    <AuthContext.Provider value={{ currentUser, login, signup, logout }}>
+    <AuthContext.Provider value={{ currentUser, login, signup, logout, isEmailVerified, resendVerificationEmail }}>
       {children}
     </AuthContext.Provider>
   );

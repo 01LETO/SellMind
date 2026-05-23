@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import sanitizeHtml from 'sanitize-html';
 import { z } from 'zod';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
+import { requireEmailVerified } from '../middleware/require-email-verified.js';
 import { pagesRateLimit } from '../middleware/pages-rate-limit.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import logger from '../utils/logger.js';
@@ -59,6 +60,7 @@ const SANITIZE_OPTIONS = {
 
 const router = Router();
 router.use(supabaseAuth);
+router.use(requireEmailVerified);
 
 const client = new Anthropic();
 
@@ -210,7 +212,7 @@ Gere a landing page HTML completa, responsiva e otimizada para conversão.`;
 	const response = await client.messages.create({
 		model: process.env.CLAUDE_MODEL || 'claude-opus-4-7',
 		max_tokens: 8192,
-		system: SYSTEM_PROMPT,
+		system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
 		messages: [{ role: 'user', content: userPrompt }],
 	});
 

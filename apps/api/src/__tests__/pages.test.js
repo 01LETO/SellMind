@@ -10,6 +10,7 @@ vi.mock('../utils/supabaseClient.js', () => ({
 vi.mock('../middleware/supabase-auth.js', () => ({
 	supabaseAuth: (req, _res, next) => {
 		req.supabaseUserId = 'user-test-123';
+		req.supabaseUser = { id: 'user-test-123', email_confirmed_at: '2024-01-01T00:00:00Z' };
 		next();
 	},
 }));

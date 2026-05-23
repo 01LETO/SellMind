@@ -218,7 +218,7 @@ export async function stream({ userId, systemPrompt, userMessage }) {
 	const claudeStream = client.messages.stream({
 		model: process.env.CLAUDE_MODEL || 'claude-opus-4-7',
 		max_tokens: 8192,
-		system: systemPrompt,
+		system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
 		messages: claudeMessages,
 	});
 

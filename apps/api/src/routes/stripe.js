@@ -60,28 +60,32 @@ router.post('/create-checkout', supabaseAuth, stripeCheckoutRateLimit, async (re
         return res.status(400).json({ error: `Invalid planType. Allowed values: ${Object.keys(planPrices).join(', ')}` });
     }
 
-    const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-            {
-                price_data: {
-                    currency: 'brl',
-                    product_data: {
-                        name: `SellMind ${planType.charAt(0).toUpperCase() + planType.slice(1)} Plan`,
+    try {
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price_data: {
+                        currency: 'brl',
+                        product_data: {
+                            name: `SellMind ${planType.charAt(0).toUpperCase() + planType.slice(1)} Plan`,
+                        },
+                        unit_amount: planPrices[planType],
+                        recurring: { interval: 'month' },
                     },
-                    unit_amount: planPrices[planType],
-                    recurring: { interval: 'month' },
+                    quantity: 1,
                 },
-                quantity: 1,
-            },
-        ],
-        mode: 'subscription',
-        success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/cancel`,
-        metadata: { userId, planType },
-    });
-
-    res.json({ sessionId: session.id, checkoutUrl: session.url });
+            ],
+            mode: 'subscription',
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/cancel`,
+            metadata: { userId, planType },
+        });
+        res.json({ sessionId: session.id, checkoutUrl: session.url });
+    } catch (err) {
+        logger.error('Stripe create-checkout error:', err.message);
+        res.status(err.statusCode ?? 500).json({ error: 'Erro ao criar sessão de pagamento.' });
+    }
 });
 
 /**
@@ -129,12 +133,16 @@ router.post('/create-portal', supabaseAuth, stripePortalRateLimit, async (req, r
         return res.status(404).json({ error: 'Nenhuma assinatura encontrada para este usuário.' });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-        customer: subscriber.stripe_customer_id,
-        return_url: `${process.env.FRONTEND_URL}/dashboard`,
-    });
-
-    res.json({ url: session.url });
+    try {
+        const session = await stripe.billingPortal.sessions.create({
+            customer: subscriber.stripe_customer_id,
+            return_url: `${process.env.FRONTEND_URL}/dashboard`,
+        });
+        res.json({ url: session.url });
+    } catch (err) {
+        logger.error('Stripe create-portal error:', err.message);
+        res.status(err.statusCode ?? 500).json({ error: 'Erro ao abrir portal de assinatura.' });
+    }
 });
 
 /**
@@ -173,13 +181,18 @@ router.get('/session/:sessionId', async (req, res) => {
     const { sessionId } = req.params;
     if (!sessionId) return res.status(400).json({ error: 'sessionId is required' });
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    res.json({
-        id: session.id,
-        status: session.payment_status,
-        amountTotal: session.amount_total,
-        customerEmail: session.customer_details?.email,
-    });
+    try {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        res.json({
+            id: session.id,
+            status: session.payment_status,
+            amountTotal: session.amount_total,
+            customerEmail: session.customer_details?.email,
+        });
+    } catch (err) {
+        logger.error('Stripe retrieve-session error:', err.message);
+        res.status(err.statusCode ?? 500).json({ error: 'Sessão de pagamento não encontrada.' });
+    }
 });
 
 // POST /stripe/webhook

@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import EmailVerificationBanner from '@/components/EmailVerificationBanner';
 import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
@@ -27,8 +28,10 @@ function PublicRoute({ children }) {
 }
 
 function AppRoutes() {
+  const { currentUser } = useAuth();
   return (
     <>
+      {currentUser && <EmailVerificationBanner />}
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />

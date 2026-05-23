@@ -5,11 +5,15 @@ import { SystemPrompt } from '../constants/prompts.js';
 import { uploadFiles, validateMagicBytes } from '../middleware/file-upload.js';
 import { integratedAiRateLimit } from '../middleware/integrated-ai-rate-limit.js';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
+import { requireEmailVerified } from '../middleware/require-email-verified.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 
 const router = Router();
 
 router.use(supabaseAuth);
+router.use(requireEmailVerified);
+
+const CHAT_LIMITS = { free: 100, professional: 1000, enterprise: Infinity };
 
 /**
  * @openapi
@@ -92,6 +96,34 @@ router.post('/stream', integratedAiRateLimit, uploadFiles({
     const invalidFiles = (req.files ?? []).filter((f) => !validateMagicBytes(f));
     if (invalidFiles.length > 0) {
         return res.status(400).json({ error: 'Um ou mais arquivos enviados são inválidos.' });
+    }
+
+    // Verifica limite mensal de mensagens por plano
+    if (req.supabaseUserId) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+        const [{ data: profile }, { count: messagesThisMonth }] = await Promise.all([
+            supabaseAdmin.from('profiles').select('plan_type').eq('user_id', req.supabaseUserId).single(),
+            supabaseAdmin.from('integrated_ai_messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', req.supabaseUserId)
+                .eq('role', 'user')
+                .gte('created_at', startOfMonth),
+        ]);
+
+        const planType = profile?.plan_type || 'free';
+        const chatLimit = CHAT_LIMITS[planType] ?? CHAT_LIMITS.free;
+
+        if (messagesThisMonth >= chatLimit) {
+            return res.status(403).json({
+                error: `Limite de mensagens do plano ${planType} atingido (${chatLimit}/mês). Faça upgrade para continuar.`,
+                limitReached: true,
+                planType,
+                limit: chatLimit,
+                used: messagesThisMonth,
+            });
+        }
     }
 
     const parsedMessage = JSON.parse(message);

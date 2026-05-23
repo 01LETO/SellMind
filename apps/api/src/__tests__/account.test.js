@@ -80,6 +80,7 @@ vi.mock('../middleware/supabase-auth.js', () => ({
 		const header = req.headers.authorization;
 		if (header?.startsWith('Bearer valid-token')) {
 			req.supabaseUserId = 'user-test-123';
+			req.supabaseUser = { id: 'user-test-123', email_confirmed_at: '2024-01-01T00:00:00Z' };
 		}
 		next();
 	},
