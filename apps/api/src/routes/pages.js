@@ -1,12 +1,22 @@
 import { Router } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import sanitizeHtml from 'sanitize-html';
+import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
 import { requireEmailVerified } from '../middleware/require-email-verified.js';
 import { pagesRateLimit } from '../middleware/pages-rate-limit.js';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import logger from '../utils/logger.js';
+
+const viewRateLimit = rateLimit({
+	windowMs: 60 * 1000,
+	limit: 3,
+	standardHeaders: 'draft-7',
+	legacyHeaders: false,
+	keyGenerator: (req) => `${req.ip}:${req.params.id}`,
+	skip: (_req, res) => { res.locals.skipViewLog = true; return false; },
+});
 
 const SANITIZE_OPTIONS = {
 	allowedTags: [
@@ -76,12 +86,69 @@ router.get('/public/:id', async (req, res) => {
 	if (error || !data) return res.status(404).json({ error: 'Página não encontrada.' });
 
 	const apiBase = process.env.API_PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
-	const leadScript = `<script>(function(){var A="${apiBase}",P="${id}";document.addEventListener("submit",function(e){var f=e.target;if(!f||f.tagName!=="FORM")return;e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});fetch(A+"/leads/"+P,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data:d})}).then(function(r){if(r.ok)f.innerHTML='<div style="text-align:center;padding:2rem"><p style="color:#16a34a;font-size:1.1rem;font-weight:600">✓ Recebemos seus dados!</p><p style="color:#6b7280;margin-top:0.5rem">Entraremos em contato em breve.</p></div>';});});})();<\/script>`;
+	const injectedScript = `<script>(function(){var A="${apiBase}",P="${id}";
+var vk="_smv_"+P,last=parseInt(localStorage.getItem(vk)||"0");
+if(Date.now()-last>3600000){localStorage.setItem(vk,Date.now());fetch(A+"/pages/public/"+P+"/view",{method:"POST"});}
+document.addEventListener("submit",function(e){var f=e.target;if(!f||f.tagName!=="FORM")return;e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});fetch(A+"/leads/"+P,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data:d})}).then(function(r){if(r.ok)f.innerHTML='<div style="text-align:center;padding:2rem"><p style="color:#16a34a;font-size:1.1rem;font-weight:600">✓ Recebemos seus dados!</p><p style="color:#6b7280;margin-top:0.5rem">Entraremos em contato em breve.</p></div>';});});})();<\/script>`;
 	const html = data.html_content.includes('</body>')
-		? data.html_content.replace('</body>', `${leadScript}\n</body>`)
-		: data.html_content + leadScript;
+		? data.html_content.replace('</body>', `${injectedScript}\n</body>`)
+		: data.html_content + injectedScript;
 
 	res.json({ html, title: data.title, productName: data.product_name });
+});
+
+// Registra uma visualização — público, rate-limited (3/min por IP+página)
+router.post('/public/:id/view', viewRateLimit, async (req, res) => {
+	const { id } = req.params;
+	if (!UUID_RE.test(id)) return res.status(204).end();
+
+	supabaseAdmin.from('page_views').insert({ page_id: id }).then(({ error }) => {
+		if (error) logger.error('Failed to log page view:', error.message);
+	});
+
+	res.status(204).end();
+});
+
+// Analytics — requer autenticação; somente o dono da página
+router.get('/analytics/:id', supabaseAuth, async (req, res) => {
+	const { id } = req.params;
+	if (!UUID_RE.test(id)) return res.status(404).json({ error: 'Página não encontrada.' });
+	if (!req.supabaseUserId) return res.status(401).json({ error: 'Não autorizado.' });
+
+	const { data: page } = await supabaseAdmin
+		.from('pages')
+		.select('id, product_name')
+		.eq('id', id)
+		.eq('user_id', req.supabaseUserId)
+		.single();
+
+	if (!page) return res.status(404).json({ error: 'Página não encontrada.' });
+
+	const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+	const [{ data: views }, { data: leads }] = await Promise.all([
+		supabaseAdmin.from('page_views').select('viewed_at').eq('page_id', id),
+		supabaseAdmin.from('leads').select('created_at').eq('page_id', id),
+	]);
+
+	const totalViews = views?.length ?? 0;
+	const totalLeads = leads?.length ?? 0;
+	const conversionRate = totalViews > 0 ? ((totalLeads / totalViews) * 100).toFixed(1) : '0.0';
+
+	// Agrupa views por dia nos últimos 30 dias
+	const byDay = {};
+	for (let i = 29; i >= 0; i--) {
+		const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+		byDay[d.toISOString().slice(0, 10)] = 0;
+	}
+	(views ?? []).filter(v => v.viewed_at >= thirtyDaysAgo).forEach(v => {
+		const day = v.viewed_at.slice(0, 10);
+		if (byDay[day] !== undefined) byDay[day]++;
+	});
+
+	const viewsByDay = Object.entries(byDay).map(([day, count]) => ({ day, views: count }));
+
+	res.json({ productName: page.product_name, totalViews, totalLeads, conversionRate, viewsByDay });
 });
 
 router.use(supabaseAuth);

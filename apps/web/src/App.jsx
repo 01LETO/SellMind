@@ -20,6 +20,7 @@ import PublicPage from '@/pages/PublicPage';
 import LeadsPage from '@/pages/LeadsPage';
 import TermsPage from '@/pages/TermsPage';
 import PrivacyPage from '@/pages/PrivacyPage';
+import AnalyticsPage from '@/pages/AnalyticsPage';
 
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
@@ -54,6 +55,7 @@ function AppRoutes() {
         <Route path="/leads/:pageId" element={<PrivateRoute><LeadsPage /></PrivateRoute>} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/analytics/:pageId" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/landing" replace />} />
       </Routes>
       <Toaster richColors position="top-right" />
