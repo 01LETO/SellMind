@@ -75,7 +75,13 @@ router.get('/public/:id', async (req, res) => {
 
 	if (error || !data) return res.status(404).json({ error: 'Página não encontrada.' });
 
-	res.json({ html: data.html_content, title: data.title, productName: data.product_name });
+	const apiBase = process.env.API_PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
+	const leadScript = `<script>(function(){var A="${apiBase}",P="${id}";document.addEventListener("submit",function(e){var f=e.target;if(!f||f.tagName!=="FORM")return;e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});fetch(A+"/leads/"+P,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data:d})}).then(function(r){if(r.ok)f.innerHTML='<div style="text-align:center;padding:2rem"><p style="color:#16a34a;font-size:1.1rem;font-weight:600">✓ Recebemos seus dados!</p><p style="color:#6b7280;margin-top:0.5rem">Entraremos em contato em breve.</p></div>';});});})();<\/script>`;
+	const html = data.html_content.includes('</body>')
+		? data.html_content.replace('</body>', `${leadScript}\n</body>`)
+		: data.html_content + leadScript;
+
+	res.json({ html, title: data.title, productName: data.product_name });
 });
 
 router.use(supabaseAuth);

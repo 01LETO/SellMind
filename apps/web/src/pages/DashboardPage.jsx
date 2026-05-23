@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { Download, Eye, Trash2, Plus, LogOut, MessageSquare, Zap, CreditCard, Settings, Link2 } from 'lucide-react';
+import { Download, Eye, Trash2, Plus, LogOut, MessageSquare, Zap, CreditCard, Settings, Link2, Users } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -326,6 +326,15 @@ export default function DashboardPage() {
                                 title="Copiar link público"
                               >
                                 <Link2 className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/leads/${page.id}`)}
+                                className="text-muted-foreground hover:text-foreground hover:bg-white/5 h-8 w-8 p-0"
+                                title="Ver leads"
+                              >
+                                <Users className="w-3.5 h-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"

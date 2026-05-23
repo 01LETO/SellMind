@@ -11,6 +11,7 @@ import stripeRouter from './routes/stripe.js';
 import integratedAiRouter from './routes/integrated-ai.js';
 import pagesRouter from './routes/pages.js';
 import accountRouter from './routes/account.js';
+import leadsRouter from './routes/leads.js';
 
 if (process.env.SENTRY_DSN) {
 	Sentry.init({
@@ -87,6 +88,7 @@ app.use('/stripe', stripeRouter);
 app.use('/integrated-ai', integratedAiRouter);
 app.use('/pages', pagesRouter);
 app.use('/account', accountRouter);
+app.use('/leads', leadsRouter);
 
 app.use((err, _req, res, _next) => {
 	logger.error({ message: err.message, stack: err.stack });

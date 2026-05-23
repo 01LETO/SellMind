@@ -17,6 +17,7 @@ import SettingsPage from '@/pages/SettingsPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import PublicPage from '@/pages/PublicPage';
+import LeadsPage from '@/pages/LeadsPage';
 
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
@@ -48,6 +49,7 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         <Route path="/p/:id" element={<PublicPage />} />
+        <Route path="/leads/:pageId" element={<PrivateRoute><LeadsPage /></PrivateRoute>} />
         <Route path="*" element={<Navigate to="/landing" replace />} />
       </Routes>
       <Toaster richColors position="top-right" />
