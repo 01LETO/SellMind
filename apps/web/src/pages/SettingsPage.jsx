@@ -73,9 +73,20 @@ export default function SettingsPage() {
 
   const handleDeleteAccount = async () => {
     try {
-      await supabase.from('pages').delete().eq('user_id', currentUser.id);
-      await supabase.from('integrated_ai_messages').delete().eq('user_id', currentUser.id);
-      toast({ title: 'Conta excluída', description: 'Seus dados foram removidos.' });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? '/hcgi/api'}/account`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Erro ao excluir conta.');
+      }
+
+      toast({ title: 'Conta excluída', description: 'Todos os seus dados foram removidos.' });
       await logout();
       navigate('/landing');
     } catch (err) {

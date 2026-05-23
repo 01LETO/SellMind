@@ -31,6 +31,13 @@ vi.mock('../utils/supabaseClient.js', () => ({
 	},
 }));
 
+vi.mock('../middleware/supabase-auth.js', () => ({
+	supabaseAuth: (req, _res, next) => {
+		req.supabaseUserId = 'user-test-123';
+		next();
+	},
+}));
+
 const { supabaseAdmin } = await import('../utils/supabaseClient.js');
 const app = (await import('../app.js')).default;
 
@@ -141,5 +148,58 @@ describe('POST /stripe/webhook', () => {
 
 		expect(res.status).toBe(200);
 		expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({ subscribed: false }));
+	});
+});
+
+describe('POST /stripe/create-portal', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('retorna 400 quando userId está ausente', async () => {
+		const res = await request(app).post('/stripe/create-portal').send({});
+		expect(res.status).toBe(400);
+	});
+
+	it('retorna 404 quando usuário não tem assinatura', async () => {
+		supabaseAdmin.from.mockReturnValue({
+			select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null }) }) }),
+		});
+
+		const res = await request(app).post('/stripe/create-portal').send({ userId: 'user-123' });
+		expect(res.status).toBe(404);
+	});
+
+	it('retorna URL do portal quando usuário tem assinatura', async () => {
+		supabaseAdmin.from.mockReturnValue({
+			select: () => ({
+				eq: () => ({
+					maybeSingle: () => Promise.resolve({ data: { stripe_customer_id: 'cus_test_123' } }),
+				}),
+			}),
+		});
+
+		const res = await request(app).post('/stripe/create-portal').send({ userId: 'user-123' });
+		expect(res.status).toBe(200);
+		expect(res.body).toHaveProperty('url', 'https://billing.stripe.com/test');
+	});
+});
+
+describe('GET /stripe/session/:sessionId', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('retorna dados da sessão para sessionId válido', async () => {
+		const res = await request(app).get('/stripe/session/cs_test_123');
+		expect(res.status).toBe(200);
+		expect(res.body).toMatchObject({
+			id: 'cs_test_123',
+			status: 'paid',
+			amountTotal: 4700,
+			customerEmail: 'test@example.com',
+		});
+	});
+
+	it('propaga erro do Stripe quando sessionId não existe', async () => {
+		mockRetrieve.mockRejectedValueOnce(Object.assign(new Error('No such session'), { status: 404 }));
+		const res = await request(app).get('/stripe/session/cs_invalid');
+		expect(res.status).toBe(404);
 	});
 });
