@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { supabaseAdmin } from '../utils/supabaseClient.js';
 import { supabaseAuth } from '../middleware/supabase-auth.js';
 import logger from '../utils/logger.js';
+import { sendLeadNotification } from '../utils/email.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -35,7 +36,7 @@ router.post('/:pageId', leadsSubmitRateLimit, async (req, res) => {
 
 	const { data: page, error: pageError } = await supabaseAdmin
 		.from('pages')
-		.select('id')
+		.select('id, product_name, user_id')
 		.eq('id', pageId)
 		.single();
 
@@ -49,6 +50,19 @@ router.post('/:pageId', leadsSubmitRateLimit, async (req, res) => {
 		logger.error('Failed to save lead:', error.message);
 		return res.status(500).json({ error: 'Erro ao registrar lead.' });
 	}
+
+	// Notificação por e-mail — não bloqueia a resposta
+	supabaseAdmin.auth.admin.getUserById(page.user_id).then(({ data }) => {
+		const ownerEmail = data?.user?.email;
+		if (ownerEmail) {
+			sendLeadNotification({
+				to: ownerEmail,
+				productName: page.product_name,
+				data: parsed.data,
+				pageId,
+			});
+		}
+	});
 
 	res.json({ ok: true });
 });
