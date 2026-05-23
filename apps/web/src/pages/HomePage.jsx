@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { Sparkles, LayoutDashboard, LogOut, MessageSquare } from 'lucide-react';
@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import WelcomeModal from '@/components/WelcomeModal';
+import UsageBanner from '@/components/UsageBanner';
 
 const TONE_OPTIONS = [
   { value: 'profissional', label: 'Profissional' },
@@ -23,10 +25,13 @@ const TONE_OPTIONS = [
   { value: 'emocional', label: 'Emocional' },
 ];
 
+const PLAN_LIMITS = { free: 3, professional: 30, enterprise: Infinity };
+
 export default function HomePage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [usage, setUsage] = useState({ used: 0, limit: 3, planType: 'free' });
   const [form, setForm] = useState({
     productName: '',
     targetAudience: '',
@@ -34,6 +39,20 @@ export default function HomePage() {
     transformation: '',
     toneOfVoice: '',
   });
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    Promise.all([
+      supabase.from('profiles').select('plan_type').eq('user_id', currentUser.id).single(),
+      supabase.from('pages').select('*', { count: 'exact', head: true })
+        .eq('user_id', currentUser.id).gte('created_at', startOfMonth),
+    ]).then(([{ data: profile }, { count }]) => {
+      const planType = profile?.plan_type || 'free';
+      setUsage({ used: count ?? 0, limit: PLAN_LIMITS[planType] ?? 3, planType });
+    });
+  }, [currentUser]);
 
   const handleChange = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
   const handleSelect = (value) => setForm((prev) => ({ ...prev, toneOfVoice: value }));
@@ -108,6 +127,7 @@ export default function HomePage() {
         <title>SellMind — Gerar Página de Vendas</title>
       </Helmet>
 
+      <WelcomeModal />
       <div className="min-h-screen gradient-bg">
         {/* Header */}
         <div className="border-b border-white/5 bg-black/20 backdrop-blur-md sticky top-0 z-50">
@@ -136,6 +156,7 @@ export default function HomePage() {
         </div>
 
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <UsageBanner used={usage.used} limit={usage.limit} planType={usage.planType} />
           {/* Hero text */}
           <div className="text-center mb-10 animate-fade-in">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-medium mb-5">
