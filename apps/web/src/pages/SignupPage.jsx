@@ -108,7 +108,14 @@ export default function SignupPage() {
               </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground mt-5">
+            <p className="text-center text-xs text-muted-foreground mt-4 leading-relaxed">
+              Ao criar sua conta, você concorda com os{' '}
+              <Link to="/terms" className="text-primary hover:text-primary/80 transition-colors">Termos de Uso</Link>
+              {' '}e a{' '}
+              <Link to="/privacy" className="text-primary hover:text-primary/80 transition-colors">Política de Privacidade</Link>.
+            </p>
+
+            <p className="text-center text-sm text-muted-foreground mt-3">
               Já tem conta?{' '}
               <Link to="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
                 Entrar

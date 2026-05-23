@@ -18,6 +18,8 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
 import PublicPage from '@/pages/PublicPage';
 import LeadsPage from '@/pages/LeadsPage';
+import TermsPage from '@/pages/TermsPage';
+import PrivacyPage from '@/pages/PrivacyPage';
 
 function PrivateRoute({ children }) {
   const { currentUser } = useAuth();
@@ -50,6 +52,8 @@ function AppRoutes() {
         <Route path="/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         <Route path="/p/:id" element={<PublicPage />} />
         <Route path="/leads/:pageId" element={<PrivateRoute><LeadsPage /></PrivateRoute>} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="*" element={<Navigate to="/landing" replace />} />
       </Routes>
       <Toaster richColors position="top-right" />

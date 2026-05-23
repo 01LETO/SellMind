@@ -269,6 +269,8 @@ export default function LandingPage() {
               <button onClick={() => navigate('/pricing')} className="hover:text-foreground transition-colors">Planos</button>
               <button onClick={() => navigate('/login')} className="hover:text-foreground transition-colors">Entrar</button>
               <button onClick={() => navigate('/signup')} className="hover:text-foreground transition-colors">Criar conta</button>
+              <button onClick={() => navigate('/terms')} className="hover:text-foreground transition-colors">Termos</button>
+              <button onClick={() => navigate('/privacy')} className="hover:text-foreground transition-colors">Privacidade</button>
             </div>
           </div>
         </footer>
