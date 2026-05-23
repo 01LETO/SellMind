@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/node';
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -20,6 +21,14 @@ if (process.env.SENTRY_DSN) {
 }
 
 const app = express();
+
+// Comprime respostas JSON; ignora SSE (text/event-stream não se beneficia de gzip)
+app.use(compression({
+	filter: (req, res) => {
+		if (res.getHeader('Content-Type')?.includes('text/event-stream')) return false;
+		return compression.filter(req, res);
+	},
+}));
 
 app.use(helmet({
 	contentSecurityPolicy: {

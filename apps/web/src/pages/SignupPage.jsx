@@ -19,8 +19,12 @@ export default function SignupPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (password.length < 6) {
-      toast({ variant: 'destructive', title: 'Senha fraca', description: 'A senha deve ter pelo menos 6 caracteres.' });
+    if (password.length < 8) {
+      toast({ variant: 'destructive', title: 'Senha fraca', description: 'A senha deve ter pelo menos 8 caracteres.' });
+      return;
+    }
+    if (!/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+      toast({ variant: 'destructive', title: 'Senha fraca', description: 'Use pelo menos um número ou símbolo (ex: 1, !, @).' });
       return;
     }
     setLoading(true);
@@ -78,7 +82,7 @@ export default function SignupPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres, número ou símbolo"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

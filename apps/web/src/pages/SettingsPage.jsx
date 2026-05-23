@@ -52,8 +52,12 @@ export default function SettingsPage() {
       toast({ variant: 'destructive', title: 'Senhas não coincidem', description: 'A nova senha e a confirmação devem ser iguais.' });
       return;
     }
-    if (newPassword.length < 6) {
-      toast({ variant: 'destructive', title: 'Senha fraca', description: 'A senha deve ter pelo menos 6 caracteres.' });
+    if (newPassword.length < 8) {
+      toast({ variant: 'destructive', title: 'Senha fraca', description: 'A senha deve ter pelo menos 8 caracteres.' });
+      return;
+    }
+    if (!/[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword)) {
+      toast({ variant: 'destructive', title: 'Senha fraca', description: 'Use pelo menos um número ou símbolo (ex: 1, !, @).' });
       return;
     }
     setLoadingPassword(true);

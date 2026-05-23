@@ -19,6 +19,7 @@
     "@anthropic-ai/sdk": "^0.55.0",
     "@sentry/node": "^10.53.1",
     "@supabase/supabase-js": "^2.49.0",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.0.1",

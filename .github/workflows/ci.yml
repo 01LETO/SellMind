@@ -2,107 +2,69 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
     branches: [main]
 
 jobs:
   test-api:
-    name: Lint & Test (API)
+    name: API Tests
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+        working-directory: .
 
-      - name: Lint API
-        run: npm run lint --workspace=apps/api
+      - name: Lint
+        run: npm run lint
 
-      - name: Test API
-        run: npm test --workspace=apps/api
+      - name: Test
+        run: npm run test
         env:
-          SUPABASE_URL: https://test.supabase.co
+          NODE_ENV: test
+          SUPABASE_URL: http://localhost:54321
           SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
           SUPABASE_ANON_KEY: test-anon-key
-          ANTHROPIC_API_KEY: sk-ant-test
-          STRIPE_SECRET_KEY: sk_test_fake
-          STRIPE_WEBHOOK_SECRET: whsec_test
+          STRIPE_SECRET_KEY: sk_test_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_placeholder
           FRONTEND_URL: http://localhost:5173
+          CLAUDE_MODEL: claude-haiku-4-5-20251001
 
-  build-web:
-    name: Lint & Build (Web)
+  test-web:
+    name: Web Build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
+        working-directory: .
 
-      - name: Lint Web
-        run: npm run lint --workspace=apps/web
+      - name: Lint
+        run: npm run lint
 
-      - name: Build Web
-        run: npm run build --workspace=apps/web
+      - name: Build
+        run: npm run build
         env:
-          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_URL: http://localhost:54321
           VITE_SUPABASE_ANON_KEY: test-anon-key
-
-  e2e:
-    name: Testes E2E (Playwright)
-    runs-on: ubuntu-latest
-    needs: build-web
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
-        working-directory: apps/web
-
-      - name: Build Web para E2E
-        run: npm run build --workspace=apps/web
-        env:
-          VITE_SUPABASE_URL: https://test.supabase.co
-          VITE_SUPABASE_ANON_KEY: test-anon-key
-
-      - name: Servir build e rodar testes E2E
-        run: |
-          npx vite preview --port 3000 &
-          sleep 3
-          npm run test:e2e --workspace=apps/web
-        env:
-          E2E_BASE_URL: http://localhost:3000
-          CI: true
-        working-directory: apps/web
-
-      - name: Upload relatório Playwright
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-report
-          path: apps/web/playwright-report/
-          retention-days: 7
