@@ -58,7 +58,26 @@ const SANITIZE_OPTIONS = {
 	allowVulnerableTags: true,
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const router = Router();
+
+// Rota pública — sem autenticação
+router.get('/public/:id', async (req, res) => {
+	const { id } = req.params;
+	if (!UUID_RE.test(id)) return res.status(404).json({ error: 'Página não encontrada.' });
+
+	const { data, error } = await supabaseAdmin
+		.from('pages')
+		.select('html_content, title, product_name')
+		.eq('id', id)
+		.single();
+
+	if (error || !data) return res.status(404).json({ error: 'Página não encontrada.' });
+
+	res.json({ html: data.html_content, title: data.title, productName: data.product_name });
+});
+
 router.use(supabaseAuth);
 router.use(requireEmailVerified);
 

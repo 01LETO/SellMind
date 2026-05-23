@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { Download, Eye, Trash2, Plus, LogOut, MessageSquare, Zap, CreditCard, Settings } from 'lucide-react';
+import { Download, Eye, Trash2, Plus, LogOut, MessageSquare, Zap, CreditCard, Settings, Link2 } from 'lucide-react';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -49,6 +49,16 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCopyLink = async (page) => {
+    const link = `${window.location.origin}/p/${page.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({ title: 'Link copiado!', description: link });
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao copiar link' });
+    }
+  };
+
   const handleView = (page) => {
     navigate('/result', {
       state: {
@@ -60,6 +70,7 @@ export default function DashboardPage() {
             toneOfVoice: page.tone_of_voice,
             wordCount: page.word_count,
             generatedAt: page.generated_at,
+            pageId: page.id,
           },
           formData: {
             targetAudience: page.target_audience,
@@ -303,14 +314,25 @@ export default function DashboardPage() {
                                 size="sm"
                                 onClick={() => handleView(page)}
                                 className="text-muted-foreground hover:text-foreground hover:bg-white/5 h-8 w-8 p-0"
+                                title="Visualizar"
                               >
                                 <Eye className="w-3.5 h-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => handleCopyLink(page)}
+                                className="text-muted-foreground hover:text-foreground hover:bg-white/5 h-8 w-8 p-0"
+                                title="Copiar link público"
+                              >
+                                <Link2 className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleDownload(page)}
                                 className="text-muted-foreground hover:text-foreground hover:bg-white/5 h-8 w-8 p-0"
+                                title="Baixar HTML"
                               >
                                 <Download className="w-3.5 h-3.5" />
                               </Button>

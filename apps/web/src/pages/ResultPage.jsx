@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { ArrowLeft, Download, Copy, Eye, Code, Sparkles } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Eye, Code, Sparkles, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
@@ -35,6 +35,21 @@ export default function ResultPage() {
       toast({ title: 'Código copiado', description: 'HTML copiado para a área de transferência' });
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erro ao copiar', description: 'Não foi possível copiar o código' });
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const pageId = pageData?.metadata?.pageId;
+    if (!pageId) {
+      toast({ variant: 'destructive', title: 'Link indisponível', description: 'Esta página não possui um link público.' });
+      return;
+    }
+    const link = `${window.location.origin}/p/${pageId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({ title: 'Link copiado!', description: link });
+    } catch {
+      toast({ variant: 'destructive', title: 'Erro ao copiar link' });
     }
   };
 
@@ -91,6 +106,15 @@ export default function ResultPage() {
                 >
                   <Copy className="w-4 h-4 mr-2" />
                   Copiar HTML
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyLink}
+                  className="text-muted-foreground hover:text-foreground hover:bg-white/5"
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Copiar link
                 </Button>
                 <Button
                   size="sm"
